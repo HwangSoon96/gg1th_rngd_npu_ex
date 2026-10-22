@@ -4,7 +4,7 @@
 
 **FuriosaAI RNGD NPU 위에서 LLM 추론 · 서빙 · 성능 측정까지 직접 해 본 실습 레포지토리**
 
-GPU가 아닌 국산 NPU(RNGD)에 `Qwen3-8B-FP8`을 올려 SDK 직접 추론 → OpenAI 호환 API 서빙 → 동시성 / Prefix Caching 벤치마크 → FXB 번들 관리까지 4일 동안 단계별로 진행했다.
+GPU가 아닌 국산 NPU(RNGD)에 `Qwen3-8B-FP8`을 올려 SDK 직접 추론 → OpenAI 호환 API 서빙 → 동시성 / Prefix Caching 벤치마크 → FXB 번들 관리까지 4일간 단계별로 진행
 
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![uv](https://img.shields.io/badge/uv-package%20manager-DE5FE9?logo=uv&logoColor=white)
@@ -25,10 +25,8 @@ GPU가 아닌 국산 NPU(RNGD)에 `Qwen3-8B-FP8`을 올려 SDK 직접 추론 →
 - [기술 스택](#기술-스택)
 - [프로젝트 구조](#프로젝트-구조)
 - [시작하기](#시작하기)
-- [일차별 실습](#일차별-실습)
+- [일자별 실습](#일자별-실습)
 - [성능 측정 결과](#성능-측정-결과)
-- [트러블슈팅](#트러블슈팅)
-- [회고](#회고)
 - [레퍼런스](#레퍼런스)
 
 <br>
@@ -132,7 +130,7 @@ uv run python check_env.py
 
 ### 환경 변수
 
-각 실습 폴더의 `.env.example`(DAY 2는 `.env.sample`)을 `.env`로 복사하고 조별 배정값을 채운다.
+각 실습 폴더의 `.env.example`(DAY 2는 `.env.sample`)을 `.env`로 복사 후 조별 배정값 입력
 
 ```bash
 cp day3_npu_api/.env.example day3_npu_api/.env
@@ -160,7 +158,7 @@ uv run python 04_streaming_chat.py
 
 <br>
 
-## 일차별 실습
+## 일자별 실습
 
 <details>
 <summary><b>DAY 1 · NPU 채팅 테스트 & 메모리 예산</b></summary>
@@ -257,7 +255,7 @@ fxb check RedHatAI/Meta-Llama-3.1-8B-Instruct-FP8-dynamic
 | 4 | 347.9 ± 8.9 | 0.683 | 0.059 |
 | 8 | **630.6** ± 26.6 | 0.739 | 0.106 |
 
-동시 요청을 1 → 8로 늘렸을 때 **처리량은 약 6.2배** 증가한 반면 **E2E 지연은 약 17%만** 늘었다. 배치 효율이 아직 포화되지 않은 구간이다.
+동시 요청 1 → 8 증가 시 **처리량 약 6.2배** 증가, **E2E 지연은 약 17%** 증가에 그침 — 배치 효율이 아직 포화되지 않은 구간
 
 <p align="center">
   <img src="day4_benchmark_test/results/01_throughput_by_concurrency.png" width="48%" alt="동시성별 처리량">
@@ -274,28 +272,6 @@ fxb check RedHatAI/Meta-Llama-3.1-8B-Instruct-FP8-dynamic
 <p align="center">
   <img src="day4_benchmark_test/results/03_prefix_ttft_comparison.png" width="60%" alt="Prefix Caching TTFT 비교">
 </p>
-
-<br>
-
-## 트러블슈팅
-
-| 증상 | 원인 | 해결 |
-|---|---|---|
-| `ModuleNotFoundError: No module named 'aiohttp'` (vLLM `benchmark_serving.py`) | 벤치마크 코드 의존성이 가상환경에 없음. 다음 순서로 `datasets`, `furiosa_smi_py`도 누락 | `uv add aiohttp datasets furiosa-smi-py` |
-| `05_visualize_results.py` 실행 시 그래프 미생성 | `matplotlib` 미설치로 import 단계에서 종료 | `uv add matplotlib` 후 재실행 (측정 CSV는 그대로 재사용) |
-| `furiosa-llm` 설치 후 의존성 충돌 | `requests` 버전 호환 문제 | `uv add requests==2.32.2`로 고정 |
-| 서버 모델 목록 불일치 | `/v1/models`의 실제 ID와 `.env`의 `MODEL_ID` 불일치 | `curl /v1/models`로 확인 후 `.env` 수정 |
-| `fxb check` 결과가 `stale` | FXB를 만든 컴파일러 리비전과 현재 런타임 리비전이 다름 | fingerprint는 호환되지만 자동 선택이 안 될 수 있음 → 경로 지정 또는 재빌드 |
-
-<br>
-
-## 회고
-
-- **NPU도 결국 서빙 구조는 같다.** `furiosa-llm serve`가 OpenAI 호환 API를 제공해서 클라이언트 코드는 GPU(vLLM) 환경과 거의 동일하게 쓸 수 있었다.
-- **가중치 ≠ 실행 파일.** NPU는 모델을 미리 컴파일한 FXB가 따로 필요하고, 컴파일러 리비전까지 맞아야 자동으로 선택된다. GPU에서는 신경 쓰지 않던 부분이다.
-- **지표는 서버 기준으로.** 콘솔 출력 길이가 아니라 `/metrics` 카운터 차이로 토큰 수를 계산해야 TPS가 정확하다.
-- **Prefix Caching 결과는 재검증이 필요하다.** ON에서 첫 요청(캐시 미스)이 0.080s → 후속 요청 0.022s로 줄어든 건 확인했지만, OFF 실행에서도 Hit Counter가 증가했다. OFF 옵션이 실제로 적용됐는지 시작 로그로 다시 확인해야 비교가 성립한다.
-- **버스트 ≠ 부하 테스트.** 이번 측정은 고정 크기 버스트라 지속 부하에서의 포화 지점은 아직 모른다. 다음에는 동시성 16 ~ 128 구간과 1024/1024 토큰 시나리오로 확장해 볼 계획이다.
 
 <br>
 
