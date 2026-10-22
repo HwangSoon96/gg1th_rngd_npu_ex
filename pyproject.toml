@@ -8,6 +8,7 @@ dependencies = [
     "furiosa-llm>=2026.4.0",
     "furiosa-smi-py>=2026.1.2",
     "httpx>=0.28.1",
+    "matplotlib>=3.11.2",
     "numpy>=2.5.4",
     "pandas>=3.0.6",
     "plotly>=7.1.0",
