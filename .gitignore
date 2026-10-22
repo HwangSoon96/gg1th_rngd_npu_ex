@@ -1,0 +1,35 @@
+output_/
+day4_fxb_ex/artifacts/
+benchmark-tool-simple/
+benchmark-tool-simple/vllm-result/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Logs (fxb 실습 결과 logs/*.txt 는 추적)
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE / editor
+.vscode/
+.idea/
+
+# Model / large files
+models/
+*.safetensors
+*.fxb
